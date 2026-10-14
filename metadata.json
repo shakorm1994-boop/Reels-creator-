@@ -1,0 +1,6 @@
+{
+  "name": "Reel Studio — Mobile Reel Video Editor",
+  "description": "Mobile-first video editor for creating 15-second social reels with timed captions in Arabic, Persian, Turkish, and English.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

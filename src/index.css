@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+.font-cairo {
+  font-family: 'Cairo', sans-serif;
+}
+.font-tajawal {
+  font-family: 'Tajawal', sans-serif;
+}
+.font-vazirmatn {
+  font-family: 'Vazirmatn', sans-serif;
+}
+.font-amiri {
+  font-family: 'Amiri', serif;
+}
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
