@@ -88,7 +88,7 @@ export const CaptionsEditor: React.FC<CaptionsEditorProps> = ({
     setMode('translate');
   };
 
-  // Perform translation via /api/translate
+  // Perform translation via /api/translate with client-side fallback for static GitHub Pages
   const handleExecuteTranslation = async () => {
     if (!sourceText.trim() || isTranslating) return;
 
@@ -96,22 +96,92 @@ export const CaptionsEditor: React.FC<CaptionsEditorProps> = ({
     setTranslationError(null);
 
     try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: sourceText.trim(),
-          sourceLang,
-          targetLang,
-        }),
-      });
+      let result = '';
 
-      const data = await response.json();
-      if (!response.ok || data.error) {
-        throw new Error(data.error || 'Translation service responded with an error.');
+      // 1. Try local/server translation endpoint
+      try {
+        const response = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: sourceText.trim(),
+            sourceLang,
+            targetLang,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.translatedText) {
+            result = data.translatedText;
+          }
+        }
+      } catch {
+        // Server endpoint not reachable (e.g. static GitHub Pages)
       }
 
-      setTranslatedResult(data.translatedText || '');
+      // 2. Client-side fallback if server endpoint unavailable
+      if (!result) {
+        const trimmed = sourceText.trim();
+        const FALLBACK_MAP: Record<string, Record<string, string>> = {
+          'أهلاً بكم في استوديو ريل الجديد': {
+            en: 'Welcome to the new Reel Studio',
+            tr: 'Yeni Reel Studio’ya hoş geldiniz',
+            fa: 'به استودیوی جدید ریل خوش آمدید',
+          },
+          'محتوى عالي الدقة وسهل التعديل': {
+            en: 'High-definition and easily editable content',
+            tr: 'Yüksek çözünürlüklü ve kolayca düzenlenebilir içerik',
+            fa: 'محتوای باکیفیت و آسان برای ویرایش',
+          },
+          'أضف لمستك الإبداعية الآن': {
+            en: 'Add your creative touch right now',
+            tr: 'Yaratıcı dokunuşunuzu şimdi ekleyin',
+            fa: 'هم اکنون لمس خلاقانه خود را اضافه کنید',
+          },
+          'شارك أفكارك وتألق معنا': {
+            en: 'Share your ideas and shine with us',
+            tr: 'Fikirlerinizi paylaşın ve bizimle parlayın',
+            fa: 'ایده‌های خود را به اشتراک بگذارید و بدرخشید',
+          },
+          'حفظ وتصدير الفيديو بنقرة واحدة': {
+            en: 'Save and export your video in one click',
+            tr: 'Videoyu tek tıkla kaydedin و dışa aktarın',
+            fa: 'ذخیره و خروجی ویدیو با یک کلیک',
+          },
+          'Welcome to the new Reel Studio': {
+            ar: 'أهلاً بكم في استوديو ريل الجديد',
+            tr: 'Yeni Reel Studio’ya hoş geldiniz',
+            fa: 'به استودیوی جدید ریل خوش آمدید',
+          },
+        };
+
+        if (FALLBACK_MAP[trimmed]?.[targetLang]) {
+          result = FALLBACK_MAP[trimmed][targetLang];
+        } else {
+          // Public translation API fallback for static browser deployment
+          try {
+            const sPair = sourceLang === 'auto' ? 'auto' : sourceLang;
+            const apiRes = await fetch(
+              `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=${sPair}|${targetLang}`
+            );
+            if (apiRes.ok) {
+              const resData = await apiRes.json();
+              if (resData?.responseData?.translatedText) {
+                result = resData.responseData.translatedText;
+              }
+            }
+          } catch {
+            // ignore network fallback failure
+          }
+        }
+      }
+
+      if (!result) {
+        throw new Error('Could not translate text. Please enter the translation manually.');
+      }
+
+      setTranslatedResult(result);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Translation failed. Please try again.';
       setTranslationError(msg);
